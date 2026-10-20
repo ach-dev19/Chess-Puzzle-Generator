@@ -10,8 +10,8 @@
 
   body {
     font-family: 'DM Mono', monospace;
-    background: #1a1a1a;
-    color: #e8e8e8;
+    background: #0f1724;
+    color: #e2e8f0;
     min-height: 100vh;
     display: flex;
     align-items: flex-start;
@@ -28,13 +28,13 @@
     font-family: 'Playfair Display', serif;
     font-size: 28px;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #e6b450;
     margin-bottom: 4px;
   }
 
   .subtitle {
     font-size: 11px;
-    color: #888;
+    color: #8b9bb4;
     margin-bottom: 1.5rem;
     letter-spacing: 0.1em;
   }
@@ -47,13 +47,13 @@
 
   .sc {
     font-size: 11px;
-    color: #888;
+    color: #8b9bb4;
   }
 
   .sc strong {
     font-size: 18px;
     font-weight: 500;
-    color: #f5f0e8;
+    color: #f8fafc;
     display: block;
   }
 
@@ -79,11 +79,11 @@
     display: flex;
     align-items: center;
     font-size: 11px;
-    color: #666;
+    color: #5b6b84;
   }
 
   .board {
-    border: 1px solid #333;
+    border: 2px solid #2a3a52;
     display: inline-block;
     border-radius: 4px;
     overflow: hidden;
@@ -98,12 +98,13 @@
     align-items: center;
     justify-content: center;
     font-size: 32px;
+    color: #111;
     user-select: none;
     position: relative;
   }
 
-  .sq.light { background: #f0d9b5; }
-  .sq.dark  { background: #b58863; }
+  .sq.light { background: #eeeed2; }
+  .sq.dark  { background: #769656; }
 
   .coord-file {
     display: flex;
@@ -114,7 +115,7 @@
     width: 54px;
     text-align: center;
     font-size: 11px;
-    color: #666;
+    color: #5b6b84;
   }
 
   .info-col {
@@ -132,25 +133,25 @@
     font-weight: 500;
   }
 
-  .badge.mate    { background: #3d1515; color: #f08080; }
-  .badge.tactic  { background: #0f2a3d; color: #7bc4f5; }
-  .badge.endgame { background: #0f2e18; color: #6dc98a; }
+  .badge.mate    { background: #3b1220; color: #ff8fa3; }
+  .badge.tactic  { background: #10263f; color: #7cc0ff; }
+  .badge.endgame { background: #0f2e22; color: #5fd39a; }
 
   .puzzle-title {
     font-family: 'Playfair Display', serif;
     font-size: 20px;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #f8fafc;
     margin-bottom: 4px;
   }
 
   .turn-label {
     font-size: 12px;
-    color: #888;
+    color: #8b9bb4;
     margin-bottom: 1rem;
   }
 
-  .turn-label strong { color: #f5f0e8; }
+  .turn-label strong { color: #e6b450; }
 
   .input-row {
     display: flex;
@@ -163,31 +164,32 @@
     font-family: 'DM Mono', monospace;
     font-size: 13px;
     padding: 8px 12px;
-    background: #252525;
-    border: 1px solid #3a3a3a;
+    background: #172133;
+    border: 1px solid #2a3a52;
     border-radius: 6px;
-    color: #f5f0e8;
+    color: #f8fafc;
     outline: none;
     transition: border-color 0.2s;
   }
 
-  #answer:focus { border-color: #666; }
+  #answer:focus { border-color: #e6b450; }
 
-  #answer::placeholder { color: #555; }
+  #answer::placeholder { color: #5b6b84; }
 
   #submit {
     font-family: 'DM Mono', monospace;
     font-size: 12px;
     padding: 8px 16px;
-    background: #252525;
-    border: 1px solid #3a3a3a;
+    background: #e6b450;
+    border: 1px solid #e6b450;
     border-radius: 6px;
-    color: #e8e8e8;
+    color: #0f1724;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
   }
 
-  #submit:hover { background: #333; border-color: #555; }
+  #submit:hover { background: #d9a53c; border-color: #d9a53c; }
 
   .feedback {
     font-size: 12px;
@@ -198,14 +200,14 @@
     line-height: 1.5;
   }
 
-  .feedback.correct { background: #0d2e18; color: #6dc98a; border: 1px solid #1a5a2e; }
-  .feedback.wrong   { background: #2e0d0d; color: #f08080; border: 1px solid #5a1a1a; }
-  .feedback.hint    { background: #0f2040; color: #7bc4f5; border: 1px solid #1a3a6a; }
-  .feedback.empty   { background: #222; color: #666; border: 1px solid #2e2e2e; }
+  .feedback.correct { background: #0f2e22; color: #5fd39a; border: 1px solid #1d5a40; }
+  .feedback.wrong   { background: #3b1220; color: #ff8fa3; border: 1px solid #6b2238; }
+  .feedback.hint    { background: #10263f; color: #7cc0ff; border: 1px solid #1f4a78; }
+  .feedback.empty   { background: #131c2b; color: #5b6b84; border: 1px solid #22304a; }
 
   .hint-note {
     font-size: 11px;
-    color: #888;
+    color: #8b9bb4;
     margin-bottom: 12px;
     min-height: 16px;
   }
@@ -221,29 +223,30 @@
     font-size: 11px;
     padding: 6px 13px;
     background: transparent;
-    border: 1px solid #3a3a3a;
+    border: 1px solid #2a3a52;
     border-radius: 6px;
-    color: #888;
+    color: #8b9bb4;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
 
-  .btn-sm:hover { background: #2a2a2a; color: #e8e8e8; border-color: #555; }
-  .btn-sm.primary { border-color: #555; color: #e8e8e8; }
+  .btn-sm:hover { background: #172133; color: #f8fafc; border-color: #4a6a94; }
+  .btn-sm.primary { border-color: #e6b450; color: #e6b450; }
+  .btn-sm.primary:hover { background: #e6b450; color: #0f1724; }
 
   .divider {
     border: none;
-    border-top: 1px solid #2a2a2a;
+    border-top: 1px solid #22304a;
     margin: 1.5rem 0;
   }
 
   .notation-guide {
     font-size: 11px;
-    color: #555;
+    color: #5b6b84;
     line-height: 1.8;
   }
 
-  .notation-guide span { color: #888; }
+  .notation-guide span { color: #8b9bb4; }
 
   /* ---------- AI Coach chat widget ---------- */
   #chat-launcher {
@@ -253,9 +256,9 @@
     width: 58px;
     height: 58px;
     border-radius: 50%;
-    background: #f0d9b5;
-    color: #1a1a1a;
-    border: 1px solid #b58863;
+    background: #e6b450;
+    color: #0f1724;
+    border: 1px solid #d9a53c;
     cursor: pointer;
     font-size: 26px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
@@ -273,8 +276,8 @@
     max-width: calc(100vw - 32px);
     height: 460px;
     max-height: calc(100vh - 130px);
-    background: #222;
-    border: 1px solid #3a3a3a;
+    background: #172133;
+    border: 1px solid #2a3a52;
     border-radius: 12px;
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
     display: none;
@@ -286,8 +289,8 @@
   #chat-panel.open { display: flex; }
 
   .chat-header {
-    background: #181818;
-    border-bottom: 1px solid #2e2e2e;
+    background: #111a29;
+    border-bottom: 1px solid #22304a;
     padding: 13px 16px;
   }
 
@@ -295,12 +298,12 @@
     font-family: 'Playfair Display', serif;
     font-size: 16px;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #e6b450;
   }
 
   .chat-header p {
     font-size: 10px;
-    color: #777;
+    color: #8b9bb4;
     margin-top: 3px;
     letter-spacing: 0.08em;
   }
@@ -324,28 +327,28 @@
   }
 
   .cmsg.bot {
-    background: #2a2a2a;
-    border: 1px solid #343434;
-    color: #e8e8e8;
+    background: #1f2b40;
+    border: 1px solid #2a3a52;
+    color: #e2e8f0;
     align-self: flex-start;
     border-bottom-left-radius: 3px;
   }
 
   .cmsg.user {
-    background: #f0d9b5;
-    color: #1a1a1a;
+    background: #e6b450;
+    color: #0f1724;
     align-self: flex-end;
     border-bottom-right-radius: 3px;
   }
 
-  .cmsg.typing { color: #777; font-style: italic; }
+  .cmsg.typing { color: #8b9bb4; font-style: italic; }
 
   .chat-input-row {
     display: flex;
     gap: 8px;
     padding: 11px;
-    border-top: 1px solid #2e2e2e;
-    background: #1e1e1e;
+    border-top: 1px solid #22304a;
+    background: #131c2b;
   }
 
   #chat-input {
@@ -353,29 +356,30 @@
     font-family: 'DM Mono', monospace;
     font-size: 12px;
     padding: 9px 11px;
-    background: #252525;
-    border: 1px solid #3a3a3a;
+    background: #0f1724;
+    border: 1px solid #2a3a52;
     border-radius: 7px;
-    color: #f5f0e8;
+    color: #f8fafc;
     outline: none;
   }
 
-  #chat-input:focus { border-color: #666; }
-  #chat-input::placeholder { color: #555; }
+  #chat-input:focus { border-color: #e6b450; }
+  #chat-input::placeholder { color: #5b6b84; }
 
   #chat-send {
     font-family: 'DM Mono', monospace;
     font-size: 12px;
     padding: 0 15px;
-    background: #f0d9b5;
+    background: #e6b450;
     border: none;
     border-radius: 7px;
-    color: #1a1a1a;
+    color: #0f1724;
+    font-weight: 500;
     cursor: pointer;
   }
 
-  #chat-send:hover { background: #e6cda3; }
-  #chat-send:disabled { background: #555; color: #888; cursor: default; }
+  #chat-send:hover { background: #d9a53c; }
+  #chat-send:disabled { background: #2a3a52; color: #5b6b84; cursor: default; }
 </style>
 </head>
 <body>
