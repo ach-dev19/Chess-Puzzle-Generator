@@ -1,12 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ChessMD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root { color-scheme: dark; }
 
   body {
     font-family: 'DM Mono', monospace;
@@ -16,7 +14,9 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 2rem 1rem;
+    padding-block: 2rem 6rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
 
   #app {
@@ -103,6 +103,8 @@
     position: relative;
   }
 
+  .sq .piece { width: 46px; height: 46px; display: block; pointer-events: none; }
+
   .sq.light { background: #eeeed2; }
   .sq.dark  { background: #769656; }
 
@@ -172,7 +174,8 @@
     transition: border-color 0.2s;
   }
 
-  #answer:focus { border-color: #e6b450; }
+  #answer:focus, #chat-input:focus-visible { border-color: #e6b450; }
+  button:focus-visible { outline: 2px solid #e6b450; outline-offset: 2px; }
 
   #answer::placeholder { color: #5b6b84; }
 
@@ -234,6 +237,8 @@
   .btn-sm.primary { border-color: #e6b450; color: #e6b450; }
   .btn-sm.primary:hover { background: #e6b450; color: #0f1724; }
 
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
   .divider {
     border: none;
     border-top: 1px solid #22304a;
@@ -251,8 +256,8 @@
   /* ---------- AI Coach chat widget ---------- */
   #chat-launcher {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    right: calc(24px + env(safe-area-inset-right, 0px));
     width: 58px;
     height: 58px;
     border-radius: 50%;
@@ -270,8 +275,8 @@
 
   #chat-panel {
     position: fixed;
-    bottom: 96px;
-    right: 24px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
     width: 340px;
     max-width: calc(100vw - 32px);
     height: 460px;
@@ -381,10 +386,8 @@
   #chat-send:hover { background: #d9a53c; }
   #chat-send:disabled { background: #2a3a52; color: #5b6b84; cursor: default; }
 </style>
-</head>
-<body>
 <div id="app">
-  <h1>ChessMD</h1>
+  <h1>Chess Puzzles</h1>
   <div class="subtitle">TYPE YOUR MOVE IN ALGEBRAIC NOTATION</div>
 
   <div class="score-row">
@@ -410,6 +413,7 @@
       <div class="turn-label" id="turn-label">White to move</div>
 
       <div class="input-row">
+        <label for="answer" class="sr">Your move</label>
         <input id="answer" placeholder="e.g. Qxf7#, Rd8+, e8=Q" autocomplete="off" spellcheck="false"/>
         <button id="submit" onclick="checkAnswer()">Check</button>
       </div>
@@ -560,6 +564,11 @@ const PUZZLES = [
   }
 ];
 
+const PIECE_NAMES = {
+  K:'White king', Q:'White queen', R:'White rook', B:'White bishop', N:'White knight', P:'White pawn',
+  k:'Black king', q:'Black queen', r:'Black rook', b:'Black bishop', n:'Black knight', p:'Black pawn'
+};
+
 let cur = 0, solved = 0, attempts = 0, revealed = false, hintIdx = 0;
 
 function parseFen(fen) {
@@ -591,7 +600,14 @@ function renderBoard(fen) {
       const sq = document.createElement('div');
       sq.className = 'sq ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
       const pc = grid[r][c];
-      if (pc) sq.textContent = PIECES[pc] || '';
+      if (pc && PIECES[pc]) {
+        const img = document.createElement('img');
+        const color = pc === pc.toUpperCase() ? 'w' : 'b';
+        img.src = `pieces/${color}${pc.toUpperCase()}.svg`;
+        img.alt = PIECE_NAMES[pc];
+        img.className = 'piece';
+        sq.appendChild(img);
+      }
       rankDiv.appendChild(sq);
     }
     boardEl.appendChild(rankDiv);
@@ -695,13 +711,14 @@ chatLauncher.addEventListener('click', () => {
   if (chatPanel.classList.contains('open')) chatInput.focus();
 });
 
-// Conversation memory — sent in full with every request
+// The page keeps the conversation; each question sends it to Claude
 let chatHistory = [];
+let samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(null);
 
 // Built fresh each message so the coach always knows the CURRENT puzzle
-function buildSystemPrompt() {
+function buildInstructions() {
   const p = PUZZLES[cur];
-  return `You are a friendly chess coach inside a chess puzzle web app.
+  return `You are a friendly chess coach inside a chess puzzle web app for kids and teens.
 
 THE PUZZLE THE USER IS CURRENTLY LOOKING AT:
 - Title: ${p.title} (${p.badge})
@@ -711,64 +728,72 @@ THE PUZZLE THE USER IS CURRENTLY LOOKING AT:
 - Explanation: ${p.explain}
 
 COACHING RULES:
-- Be encouraging and keep answers short (2-4 sentences).
+- Be encouraging and keep answers short (2-4 sentences). Plain text, no markdown.
 - Guide with questions and nudges. Do NOT reveal the solution move unless the user clearly asks for the answer or says they give up.
 - If they propose a wrong move, explain briefly why it fails in this position.
 - If they propose the right move, congratulate them and explain why it works.
 - Happily explain chess concepts (forks, pins, skewers, notation) for beginners.
-- Stay on the topic of chess.`;
+- Stay on the topic of chess.
+
+Reply to the student's latest message below.`;
 }
 
-function addChatBubble(text, who) {
-  const div = document.createElement('div');
-  div.className = 'cmsg ' + who;
-  div.textContent = text;
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  return div;
+function errorText(code) {
+  switch (code) {
+    case 'not_granted': return 'The coach needs your permission to use Claude. Reload the page and choose Allow when asked.';
+    case 'sampling_disabled': return 'Claude is not available on this account, so the coach can\'t answer here.';
+    case 'rate_limited': return 'Lots of questions at once! Wait a minute, then ask again.';
+    case 'session_expired': return 'Please sign in to Claude again, then ask your question.';
+    case 'refused': return 'I can only help with chess. Try asking about the puzzle!';
+    default: return 'The coach couldn\'t answer just now. Try asking again.';
+  }
 }
 
 async function sendChat() {
   const text = chatInput.value.trim();
   if (!text) return;
 
+  const sample = await samplePromise;
+  if (!sample) {
+    addChatBubble('The AI coach works when this page is opened in Claude while signed in. The puzzles still work everywhere!', 'bot');
+    return;
+  }
+
   chatInput.value = '';
   chatSend.disabled = true;
 
   addChatBubble(text, 'user');
   chatHistory.push({ role: 'user', content: text });
+  // Keep only the most recent turns so long chats stay quick
+  if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+  while (chatHistory.length && chatHistory[0].role !== 'user') chatHistory.shift();
 
-  const typing = addChatBubble('thinking...', 'bot typing');
+  const bubble = addChatBubble('thinking...', 'bot typing');
 
   try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: buildSystemPrompt(),
-        messages: chatHistory
-      })
-    });
-
-    const data = await response.json();
-
-    const reply = data.content
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('\n');
-
-    typing.remove();
-    addChatBubble(reply, 'bot');
+    const { text: reply } = await sample(
+      [{ role: 'user', content: buildInstructions() }, ...chatHistory],
+      {
+        modelTier: 'quick',
+        cache: false,
+        onText: ({ text }) => {
+          bubble.className = 'cmsg bot';
+          bubble.textContent = text;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+    );
+    bubble.className = 'cmsg bot';
+    bubble.textContent = reply;
     chatHistory.push({ role: 'assistant', content: reply });
-
   } catch (err) {
-    typing.remove();
-    addChatBubble('Hmm, something went wrong. Try again in a moment.', 'bot');
+    bubble.className = 'cmsg bot';
+    bubble.textContent = (err && err.text && err.code !== 'refused') ? err.text : errorText(err && err.code);
+    chatHistory.pop();
     console.error(err);
   }
 
+  chatMessages.scrollTop = chatMessages.scrollHeight;
   chatSend.disabled = false;
   chatInput.focus();
 }
@@ -778,5 +803,3 @@ chatInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') sendChat();
 });
 </script>
-</body>
-</html>
