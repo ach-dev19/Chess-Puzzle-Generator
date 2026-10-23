@@ -438,6 +438,135 @@
 
   #chat-send:hover { background: var(--accent-hover); }
   #chat-send:disabled { background: var(--border); color: var(--dim); cursor: default; }
+
+  /* ---------- Mood check-in ---------- */
+  .mood-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+    margin-left: auto;
+    align-self: center;
+  }
+
+  .mood-chip:hover { color: var(--strong); border-color: var(--border-hover); }
+
+  .mood-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 14, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    z-index: 100;
+  }
+
+  .mood-overlay[hidden] { display: none; }
+
+  .mood-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 22px 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .mood-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--strong);
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .mood-card p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .mood-options {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .mood-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 4px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .mood-opt .face { font-size: 28px; line-height: 1; }
+  .mood-opt:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .mood-skip {
+    display: block;
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .mood-skip:hover { color: var(--strong); }
+
+  .feedback.calm { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-line); }
+
+  .breath {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .breath-dot {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--info);
+    opacity: 0.85;
+    animation: breathe 8s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(0.55); }
+    50% { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .breath-dot { animation: none; transform: scale(0.8); }
+    .mood-opt:hover { transform: none; }
+  }
+
+  @media (max-width: 420px) {
+    .mood-options { grid-template-columns: repeat(3, 1fr); }
+  }
 </style>
 <div id="app">
   <h1>Chess Puzzles</h1>
@@ -447,6 +576,7 @@
     <div class="sc"><strong id="sc-solved">0</strong>solved</div>
     <div class="sc"><strong id="sc-attempts">0</strong>attempts</div>
     <div class="sc"><strong id="sc-num">1/10</strong>puzzle</div>
+    <button class="mood-chip" id="mood-chip" type="button">How are you feeling?</button>
   </div>
 
   <div class="packs" id="packs" role="group" aria-label="Color theme">
@@ -492,6 +622,16 @@
     <span>Pieces:</span> K=King · Q=Queen · R=Rook · B=Bishop · N=Knight · (pawns = just the square)<br/>
     <span>Symbols:</span> x=capture · +=check · #=checkmate · e8=Q promotion<br/>
     <span>Examples:</span> e4 · Nf3 · Bxc6 · O-O (castle) · e8=Q
+  </div>
+</div>
+
+<!-- ---------- Mood check-in ---------- -->
+<div class="mood-overlay" id="mood-overlay" role="dialog" aria-modal="true" aria-labelledby="mood-title" hidden>
+  <div class="mood-card">
+    <h2 id="mood-title">How's your mood today?</h2>
+    <p>Pick the one that fits best. It helps the coach know how to cheer you on. Only this page sees it, and it isn't saved anywhere else.</p>
+    <div class="mood-options" id="mood-options"></div>
+    <button class="mood-skip" id="mood-skip" type="button">Skip for now</button>
   </div>
 </div>
 
@@ -700,6 +840,7 @@ function loadPuzzle() {
   const p = PUZZLES[cur];
   revealed = false;
   hintIdx = 0;
+  wrongStreak = 0;
 
   document.getElementById('badge').textContent = p.badge;
   document.getElementById('badge').className = 'badge ' + p.type;
@@ -718,6 +859,8 @@ function normalize(s) {
   return s.replace(/\s/g, '').toLowerCase();
 }
 
+let wrongStreak = 0;
+
 function checkAnswer() {
   const p = PUZZLES[cur];
   const val = document.getElementById('answer').value.trim();
@@ -730,7 +873,8 @@ function checkAnswer() {
   const fb = document.getElementById('feedback');
 
   if (correct) {
-    fb.textContent = '✓ Correct! ' + p.explain;
+    wrongStreak = 0;
+    fb.textContent = '✓ ' + moodPraise() + ' ' + p.explain;
     fb.className = 'feedback correct';
     document.getElementById('hint-note').textContent = '';
     if (!revealed) {
@@ -738,8 +882,8 @@ function checkAnswer() {
       document.getElementById('sc-solved').textContent = solved;
     }
   } else {
-    fb.textContent = '✗ Not quite — try again, or use a hint.';
-    fb.className = 'feedback wrong';
+    wrongStreak++;
+    showWrongFeedback(fb);
   }
 }
 
@@ -842,6 +986,131 @@ function applyPack(id) {
   applyPack(THEME_PACKS[saved] ? saved : 'midnight');
 })();
 
+
+/* ============================================ */
+/* Mood check-in                                */
+/* ============================================ */
+// Asked at most once every 24 hours. The answer (or a skip) is kept only in this browser.
+const MOOD_KEY = 'chessmd-mood';
+const MOOD_TTL = 24 * 60 * 60 * 1000;
+
+const MOODS = {
+  great:    { face: '😄', label: 'Great',    calm: false },
+  good:     { face: '🙂', label: 'Good',     calm: false },
+  okay:     { face: '😐', label: 'Okay',     calm: false },
+  sad:      { face: '😔', label: 'Sad',      calm: true },
+  stressed: { face: '😣', label: 'Stressed', calm: true }
+};
+
+let mood = null; // null = not answered or skipped
+
+function readMood() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MOOD_KEY) || 'null');
+    if (saved && Date.now() - saved.at < MOOD_TTL) return saved;
+  } catch (e) {}
+  return null;
+}
+
+function saveMood(value) {
+  try { localStorage.setItem(MOOD_KEY, JSON.stringify({ mood: value, at: Date.now() })); } catch (e) {}
+}
+
+function updateMoodChip() {
+  const chip = document.getElementById('mood-chip');
+  chip.textContent = mood ? `Mood: ${MOODS[mood].face} ${MOODS[mood].label}` : 'How are you feeling?';
+}
+
+function openMood() {
+  document.getElementById('mood-overlay').hidden = false;
+  const first = document.querySelector('.mood-opt');
+  if (first) first.focus();
+}
+
+function closeMood() {
+  document.getElementById('mood-overlay').hidden = true;
+}
+
+function pickMood(value) {
+  mood = value;
+  saveMood(value);
+  updateMoodChip();
+  closeMood();
+  const fb = document.getElementById('feedback');
+  if (fb.classList.contains('empty')) {
+    fb.textContent = MOODS[value].calm
+      ? "Thanks for telling me. We'll go slow today. No rush on any puzzle."
+      : (value === 'okay' ? "Okay works! Let's warm up with a puzzle." : "Awesome! Let's see what you can solve.");
+  }
+}
+
+function skipMood() {
+  saveMood(null); // remember the skip so it doesn't pop up again for 24 hours
+  closeMood();
+}
+
+function moodPraise() {
+  if (mood === 'sad') return 'You got it! See, you can do this.';
+  if (mood === 'stressed') return 'You got it! Nice and steady.';
+  if (mood === 'great') return 'Correct! You\'re on fire today!';
+  return 'Correct!';
+}
+
+function showWrongFeedback(fb) {
+  const calm = mood && MOODS[mood].calm;
+
+  // Bad mood (or several misses in a row): slow down with a breathing break
+  if (calm || wrongStreak >= 3) {
+    const lines = mood === 'sad'
+      ? "That's okay. Mistakes are how we learn. Breathe in slowly... and breathe out. Then take another look."
+      : "No stress. Breathe in for 4... and out for 4. Follow the circle, then try again or tap Hint.";
+    fb.className = 'feedback calm';
+    fb.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'breath';
+    const dot = document.createElement('span');
+    dot.className = 'breath-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    const txt = document.createElement('span');
+    txt.textContent = lines;
+    wrap.append(dot, txt);
+    fb.appendChild(wrap);
+    return;
+  }
+
+  fb.className = 'feedback wrong';
+  if (mood === 'great') fb.textContent = '✗ So close! Try another idea.';
+  else if (mood === 'okay') fb.textContent = '✗ Not quite. Take your time, or use a hint.';
+  else fb.textContent = '✗ Not quite. Try again, or use a hint.';
+}
+
+(function setupMood() {
+  const opts = document.getElementById('mood-options');
+  for (const [key, m] of Object.entries(MOODS)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mood-opt';
+    b.id = 'mood-' + key;
+    b.innerHTML = `<span class="face" aria-hidden="true">${m.face}</span>`;
+    b.append(m.label);
+    b.addEventListener('click', () => pickMood(key));
+    opts.appendChild(b);
+  }
+  document.getElementById('mood-skip').addEventListener('click', skipMood);
+  document.getElementById('mood-chip').addEventListener('click', openMood);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.getElementById('mood-overlay').hidden) skipMood();
+  });
+
+  const saved = readMood();
+  if (saved) {
+    mood = saved.mood && MOODS[saved.mood] ? saved.mood : null;
+  } else {
+    openMood();
+  }
+  updateMoodChip();
+})();
+
 loadPuzzle();
 
 /* ============================================ */
@@ -881,6 +1150,7 @@ COACHING RULES:
 - If they propose the right move, congratulate them and explain why it works.
 - Happily explain chess concepts (forks, pins, skewers, notation) for beginners.
 - Stay on the topic of chess.
+${mood ? `- The student said they feel "${MOODS[mood].label}" today.` + (MOODS[mood].calm ? ' Be extra gentle and patient. If they are frustrated, suggest a slow breath before trying again.' : '') : ''}
 
 Reply to the student's latest message below.`;
 }
