@@ -158,9 +158,11 @@
   }
 
   .turn-label {
-    font-size: 12px;
-    color: var(--muted);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
     margin-bottom: 1rem;
+    max-width: 34ch;
   }
 
   .turn-label strong { color: var(--accent); }
@@ -496,8 +498,8 @@
 
   .mood-options {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
     margin-bottom: 16px;
   }
 
@@ -569,7 +571,7 @@
   }
 </style>
 <div id="app">
-  <h1>ChessMD</h1>
+  <h1>Chess Puzzles</h1>
   <div class="subtitle">TYPE YOUR MOVE IN ALGEBRAIC NOTATION</div>
 
   <div class="score-row">
@@ -628,7 +630,7 @@
 <!-- ---------- Mood check-in ---------- -->
 <div class="mood-overlay" id="mood-overlay" role="dialog" aria-modal="true" aria-labelledby="mood-title" hidden>
   <div class="mood-card">
-    <h2 id="mood-title">How's your mood today?</h2>
+    <h2 id="mood-title">How are you feeling right now?</h2>
     <p>Pick the one that fits best. It helps the coach know how to cheer you on. Only this page sees it, and it isn't saved anywhere else.</p>
     <div class="mood-options" id="mood-options"></div>
     <button class="mood-skip" id="mood-skip" type="button">Skip for now</button>
@@ -667,7 +669,16 @@ const PUZZLES = [
     fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1",
     solution: ["Qxf7#"],
     hints: ["The queen has a deadly diagonal", "The f7 square is undefended"],
-    explain: "Qxf7# is Scholar's Mate — the queen and bishop combine on f7 for instant checkmate."
+    explain: "Qxf7# is Scholar's Mate — the queen and bishop combine on f7 for instant checkmate.",
+    // Mood-based question text for this puzzle (the knight on f6 attacks the queen on h5)
+    moodPrompts: {
+      nervous: "White to move. Your queen is under attack, but don't worry. Take your time."
+    },
+    // A tempting wrong idea and what to say about it
+    tempting: [
+      { match: /^q/, msg: "Your queen is safe, but you missed something bigger. Look again!" }
+    ],
+    afterTwo: "Pause. Take a breath. Your queen is attacked, but does it have a powerful move?"
   },
   {
     title: "Win the queen",
@@ -841,11 +852,12 @@ function loadPuzzle() {
   revealed = false;
   hintIdx = 0;
   wrongStreak = 0;
+  startMoveTimer();
 
   document.getElementById('badge').textContent = p.badge;
   document.getElementById('badge').className = 'badge ' + p.type;
   document.getElementById('puzzle-title').textContent = p.title;
-  document.getElementById('turn-label').innerHTML = `<strong>${p.turn}</strong> to move`;
+  showPuzzleQuestion();
   document.getElementById('answer').value = '';
   document.getElementById('feedback').textContent = 'Enter your move above';
   document.getElementById('feedback').className = 'feedback empty';
@@ -856,7 +868,8 @@ function loadPuzzle() {
 }
 
 function normalize(s) {
-  return s.replace(/\s/g, '').toLowerCase();
+  // "Qxf7#", "Qxf7" and "qf7" all count as the same move
+  return s.replace(/[\s+#!?x]/gi, '').replace(/0/g, 'o').toLowerCase();
 }
 
 let wrongStreak = 0;
@@ -871,6 +884,7 @@ function checkAnswer() {
 
   const correct = p.solution.some(s => normalize(s) === normalize(val));
   const fb = document.getElementById('feedback');
+  const secondsTaken = (Date.now() - moveTimerStart) / 1000;
 
   if (correct) {
     wrongStreak = 0;
@@ -883,7 +897,8 @@ function checkAnswer() {
     }
   } else {
     wrongStreak++;
-    showWrongFeedback(fb);
+    showWrongFeedback(fb, val, secondsTaken);
+    startMoveTimer(); // time the next try from now
   }
 }
 
@@ -991,18 +1006,35 @@ function applyPack(id) {
 /* Mood check-in                                */
 /* ============================================ */
 // Asked at most once every 24 hours. The answer (or a skip) is kept only in this browser.
-const MOOD_KEY = 'chessmd-mood';
+const MOOD_KEY = 'chessmd-mood-v2';
 const MOOD_TTL = 24 * 60 * 60 * 1000;
 
 const MOODS = {
-  great:    { face: '😄', label: 'Great',    calm: false },
-  good:     { face: '🙂', label: 'Good',     calm: false },
-  okay:     { face: '😐', label: 'Okay',     calm: false },
-  sad:      { face: '😔', label: 'Sad',      calm: true },
-  stressed: { face: '😣', label: 'Stressed', calm: true }
+  calm:       { face: '😌', label: 'Calm',       gentle: false },
+  nervous:    { face: '😬', label: 'Nervous',    gentle: true },
+  frustrated: { face: '😤', label: 'Frustrated', gentle: true }
 };
 
-let mood = null; // null = not answered or skipped
+let mood = null; // null = not answered or skipped (treated like Calm)
+let moveTimerStart = Date.now();
+
+function startMoveTimer() {
+  moveTimerStart = Date.now();
+}
+
+/* ---------- a. Puzzle question changes with mood ---------- */
+function puzzleQuestion(p) {
+  const custom = (p.moodPrompts || {})[mood];
+  if (custom) return custom;
+  if (mood === 'nervous') return `${p.turn} to move. Don't worry. Take your time.`;
+  if (mood === 'frustrated') return `${p.turn} to move. Slow down and look at every check first.`;
+  return `${p.turn} to move. Find the best move.`;
+}
+
+function showPuzzleQuestion() {
+  const el = document.getElementById('turn-label');
+  el.textContent = puzzleQuestion(PUZZLES[cur]);
+}
 
 function readMood() {
   try {
@@ -1029,6 +1061,8 @@ function openMood() {
 
 function closeMood() {
   document.getElementById('mood-overlay').hidden = true;
+  showPuzzleQuestion();
+  startMoveTimer(); // don't count time spent on the mood question
 }
 
 function pickMood(value) {
@@ -1038,9 +1072,9 @@ function pickMood(value) {
   closeMood();
   const fb = document.getElementById('feedback');
   if (fb.classList.contains('empty')) {
-    fb.textContent = MOODS[value].calm
-      ? "Thanks for telling me. We'll go slow today. No rush on any puzzle."
-      : (value === 'okay' ? "Okay works! Let's warm up with a puzzle." : "Awesome! Let's see what you can solve.");
+    fb.textContent = value === 'calm'
+      ? "Great, let's get started."
+      : "Thanks for telling me. There's no rush on any puzzle today.";
   }
 }
 
@@ -1050,37 +1084,53 @@ function skipMood() {
 }
 
 function moodPraise() {
-  if (mood === 'sad') return 'You got it! See, you can do this.';
-  if (mood === 'stressed') return 'You got it! Nice and steady.';
-  if (mood === 'great') return 'Correct! You\'re on fire today!';
+  if (mood === 'nervous') return 'You got it! See, you can do this.';
+  if (mood === 'frustrated') return 'You got it! Slowing down paid off.';
   return 'Correct!';
 }
 
-function showWrongFeedback(fb) {
-  const calm = mood && MOODS[mood].calm;
+function showCalmMessage(fb, text) {
+  fb.className = 'feedback calm';
+  fb.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'breath';
+  const dot = document.createElement('span');
+  dot.className = 'breath-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  const txt = document.createElement('span');
+  txt.textContent = text;
+  wrap.append(dot, txt);
+  fb.appendChild(wrap);
+}
 
-  // Bad mood (or several misses in a row): slow down with a breathing break
-  if (calm || wrongStreak >= 3) {
-    const lines = mood === 'sad'
-      ? "That's okay. Mistakes are how we learn. Breathe in slowly... and breathe out. Then take another look."
-      : "No stress. Breathe in for 4... and out for 4. Follow the circle, then try again or tap Hint.";
-    fb.className = 'feedback calm';
-    fb.innerHTML = '';
-    const wrap = document.createElement('div');
-    wrap.className = 'breath';
-    const dot = document.createElement('span');
-    dot.className = 'breath-dot';
-    dot.setAttribute('aria-hidden', 'true');
-    const txt = document.createElement('span');
-    txt.textContent = lines;
-    wrap.append(dot, txt);
-    fb.appendChild(wrap);
+/* ---------- b. Tracking puzzle performance ---------- */
+function showWrongFeedback(fb, move, secondsTaken) {
+  const p = PUZZLES[cur];
+
+  // After 2 wrong moves: pause and breathe
+  if (wrongStreak >= 2) {
+    showCalmMessage(fb, p.afterTwo || "Pause. Take a breath. Look at every check and capture, then try again.");
     return;
   }
 
   fb.className = 'feedback wrong';
-  if (mood === 'great') fb.textContent = '✗ So close! Try another idea.';
-  else if (mood === 'okay') fb.textContent = '✗ Not quite. Take your time, or use a hint.';
+
+  // Moved in under 3 seconds
+  if (secondsTaken < 3) {
+    fb.textContent = "That was fast! Did you check every capture first?";
+    return;
+  }
+
+  // A tempting wrong idea for this puzzle (like moving the queen away)
+  const m = normalize(move);
+  const tempt = (p.tempting || []).find(t => t.match.test(m));
+  if (tempt) {
+    fb.textContent = tempt.msg;
+    return;
+  }
+
+  if (mood === 'nervous') fb.textContent = "✗ That's okay. Take your time and try another idea.";
+  else if (mood === 'frustrated') fb.textContent = "✗ Not quite. Slow down and look at every check first.";
   else fb.textContent = '✗ Not quite. Try again, or use a hint.';
 }
 
@@ -1109,6 +1159,7 @@ function showWrongFeedback(fb) {
     openMood();
   }
   updateMoodChip();
+  showPuzzleQuestion();
 })();
 
 loadPuzzle();
@@ -1150,7 +1201,7 @@ COACHING RULES:
 - If they propose the right move, congratulate them and explain why it works.
 - Happily explain chess concepts (forks, pins, skewers, notation) for beginners.
 - Stay on the topic of chess.
-${mood ? `- The student said they feel "${MOODS[mood].label}" today.` + (MOODS[mood].calm ? ' Be extra gentle and patient. If they are frustrated, suggest a slow breath before trying again.' : '') : ''}
+${mood ? `- The student said they feel "${MOODS[mood].label}" today.` + (MOODS[mood].gentle ? ' Be extra gentle and patient. Remind them there is no rush, and suggest a slow breath if they seem stuck.' : '') : ''}
 
 Reply to the student's latest message below.`;
 }
