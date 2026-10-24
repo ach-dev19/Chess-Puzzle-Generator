@@ -135,37 +135,19 @@
     min-width: 210px;
   }
 
-  .badge {
-    display: inline-block;
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 3px;
-    margin-bottom: 10px;
-    letter-spacing: 0.1em;
-    font-weight: 500;
+  .turn-label {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 1rem;
   }
 
-  .badge.mate    { background: var(--bad-bg); color: var(--bad); }
-  .badge.tactic  { background: var(--info-bg); color: var(--info); }
-  .badge.endgame { background: var(--good-bg); color: var(--good); }
-
-  .puzzle-title {
+  .turn-label strong {
     font-family: 'Playfair Display', serif;
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--strong);
-    margin-bottom: 4px;
   }
-
-  .turn-label {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.55;
-    margin-bottom: 1rem;
-    max-width: 34ch;
-  }
-
-  .turn-label strong { color: var(--accent); }
 
   .input-row {
     display: flex;
@@ -597,9 +579,7 @@
     </div>
 
     <div class="info-col">
-      <div class="badge" id="badge">MATE IN 1</div>
-      <div class="puzzle-title" id="puzzle-title">Find the checkmate</div>
-      <div class="turn-label" id="turn-label">White to move</div>
+      <div class="turn-label" id="turn-label"><strong id="puzzle-title">Checkmate in 1</strong> · <span id="puzzle-q">White to move.</span></div>
 
       <div class="input-row">
         <label for="answer" class="sr">Your move</label>
@@ -660,6 +640,9 @@ const PIECES = {
   k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟'
 };
 
+// Each puzzle has its own mood questions (calm / nervous / frustrated),
+// tips for tempting wrong moves, and a message after 2 wrong tries.
+// Tips are checked against the typed move with +, #, x and = removed (so "Qxf7#" becomes "qf7").
 const PUZZLES = [
   {
     title: "Checkmate in 1",
@@ -668,27 +651,38 @@ const PUZZLES = [
     turn: "White",
     fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1",
     solution: ["Qxf7#"],
-    hints: ["The queen has a deadly diagonal", "The f7 square is undefended"],
-    explain: "Qxf7# is Scholar's Mate — the queen and bishop combine on f7 for instant checkmate.",
-    // Mood-based question text for this puzzle (the knight on f6 attacks the queen on h5)
+    hints: ["The queen has a deadly diagonal", "The f7 square is only guarded by the king"],
+    explain: "Qxf7# is Scholar's Mate. The queen takes on f7, the bishop protects her, and the king has nowhere to go.",
     moodPrompts: {
-      nervous: "White to move. Your queen is under attack, but don't worry. Take your time."
+      calm: "White to move. Find the best move.",
+      nervous: "White to move. Your queen is under attack, but don't worry. Take your time.",
+      frustrated: "White to move. Slow down and look at every check first."
     },
-    // A tempting wrong idea and what to say about it
     tempting: [
       { match: /^q/, msg: "Your queen is safe, but you missed something bigger. Look again!" }
     ],
     afterTwo: "Pause. Take a breath. Your queen is attacked, but does it have a powerful move?"
   },
   {
-    title: "Win the queen",
+    title: "Royal fork",
     badge: "TACTIC",
     type: "tactic",
     turn: "White",
-    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1",
-    solution: ["Bxf7+"],
-    hints: ["Attack the king and queen at the same time", "A bishop move creates a fork"],
-    explain: "Bxf7+ forks the king and queen. After Kxf7, Ng5+ wins the queen."
+    fen: "r5k1/pppq1p1p/8/3N4/8/8/PPP2PPP/5RK1 w - - 0 1",
+    solution: ["Nf6+"],
+    hints: ["Look for a knight check", "Which check also lands next to the queen's square?"],
+    explain: "Nf6+ forks the king and queen. The king has to move, then Nxd7 wins the queen.",
+    moodPrompts: {
+      calm: "White to move. Your knight can win something big.",
+      nervous: "White to move. The black queen is attacking your knight, but don't worry. It has a great jump. Take your time.",
+      frustrated: "White to move. Slow down and try every knight check, one at a time."
+    },
+    tempting: [
+      { match: /^ne7/, msg: "Check is a good start, but from e7 the knight only hits the king. Which check also attacks the queen?" },
+      { match: /^nb6/, msg: "Nice, that attacks the queen and rook! But the a7 pawn can take your knight. Is there a fork with check?" },
+      { match: /^n/, msg: "Your knight is safe there, but you missed something bigger. Look for a check!" }
+    ],
+    afterTwo: "Pause. Take a breath. Which knight check also attacks the queen on d7?"
   },
   {
     title: "Back rank mate",
@@ -697,48 +691,101 @@ const PUZZLES = [
     turn: "White",
     fen: "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
     solution: ["Rd8#"],
-    hints: ["The king cannot move up", "The back rank is vulnerable"],
-    explain: "Rd8# delivers back rank checkmate — the f7, g7, h7 pawns trap their own king."
+    hints: ["The king cannot move up", "The back rank is open"],
+    explain: "Rd8# is a back rank mate. The f7, g7 and h7 pawns trap their own king.",
+    moodPrompts: {
+      calm: "White to move. The black king looks stuck. Find the checkmate.",
+      nervous: "White to move. You only have one rook, but don't worry. One is enough. Take your time.",
+      frustrated: "White to move. Slow down and look at where the black king could run."
+    },
+    tempting: [
+      { match: /^r/, msg: "Your rook is the right piece! Which square gives check where the king can't escape?" },
+      { match: /./, msg: "Try using your rook. It's your strongest piece here." }
+    ],
+    afterTwo: "Pause. Take a breath. The king's own pawns are blocking it. Where can your rook give check?"
   },
   {
-    title: "Rook smothered",
+    title: "Double rook mate",
     badge: "MATE IN 2",
     type: "mate",
     turn: "White",
-    fen: "r5rk/5K1p/7R/8/8/8/8/8 w - - 0 1",
-    solution: ["Rh8+", "Rxh8#"],
-    hints: ["Force the rook to block its own king", "Sacrifice to smother"],
-    explain: "Rh8+ forces Rxh8, then Rxh8# — the black rook smothers its own king."
+    fen: "2r3k1/5ppp/8/8/8/8/4RPPP/4R1K1 w - - 0 1",
+    solution: ["Re8+", "Rxe8#"],
+    hints: ["Your two rooks work as a team", "It's okay to give up one rook"],
+    explain: "Re8+ forces Rxe8, then Rxe8# finishes it. The second rook delivers back rank mate.",
+    moodPrompts: {
+      calm: "White to move. Mate in two. Find the first move.",
+      nervous: "White to move. Black's rook is guarding the back row, but don't worry. You have two rooks. Take your time.",
+      frustrated: "White to move. Slow down and look at every rook check first."
+    },
+    tempting: [
+      { match: /^r/, msg: "Your rooks are stacked on the e-file for a reason. Can one of them give check on the back row?" },
+      { match: /./, msg: "Use your rooks. They're lined up and ready to go." }
+    ],
+    afterTwo: "Pause. Take a breath. If Black's rook takes your first rook, what can your second rook do?"
   },
   {
     title: "Skewer the king",
     badge: "TACTIC",
     type: "tactic",
     turn: "White",
-    fen: "r5k1/8/8/8/8/8/8/R5K1 w - - 0 1",
-    solution: ["Ra8+"],
-    hints: ["Attack through the king", "The piece behind the king is valuable"],
-    explain: "Ra8+ skewers the king — it must move, then Rxa8 wins the black rook."
+    fen: "8/8/8/q2k4/8/8/8/6KR w - - 0 1",
+    solution: ["Rh5+"],
+    hints: ["The king and queen are on the same row", "Attack the king first, the queen is behind it"],
+    explain: "Rh5+ skewers the king and queen on the 5th row. The king has to step away, then Rxa5 wins the queen.",
+    moodPrompts: {
+      calm: "White to move. Win the black queen.",
+      nervous: "White to move. Black has a queen and you only have a rook, but don't worry. Take your time.",
+      frustrated: "White to move. Slow down and look at what is lined up on each row."
+    },
+    tempting: [
+      { match: /^rd1/, msg: "That's check, but nothing is behind the king on the d-file. Which check lines up the king and queen?" },
+      { match: /^r/, msg: "Look at the 5th row. What's sitting on it?" },
+      { match: /./, msg: "Your rook is the piece that can win this. Where can it give check?" }
+    ],
+    afterTwo: "Pause. Take a breath. The king and queen are on the same row. How can your rook attack both?"
   },
   {
     title: "Pin to win",
     badge: "TACTIC",
     type: "tactic",
     turn: "White",
-    fen: "4k3/4q3/8/8/8/8/4R3/4K3 w - - 0 1",
-    solution: ["Re1"],
-    hints: ["Create an absolute pin along the file", "The queen cannot move safely"],
-    explain: "Re1 pins the queen to the king along the e-file — the queen is simply lost."
+    fen: "r3k2r/pp1q1ppp/8/8/8/2N5/PPP2PPP/R3KB1R w KQkq - 0 1",
+    solution: ["Bb5"],
+    hints: ["The queen and king are on the same diagonal", "Your knight already guards one key square"],
+    explain: "Bb5 pins the queen to the king. The queen can't escape, and if it takes the bishop, Nxb5 wins it.",
+    moodPrompts: {
+      calm: "White to move. Win the black queen.",
+      nervous: "White to move. Black has lots of pieces out, but don't worry. Only one move matters. Take your time.",
+      frustrated: "White to move. Slow down and look at every bishop move first."
+    },
+    tempting: [
+      { match: /^b/, msg: "Your bishop is the right piece! Which square lines up the queen and the king?" },
+      { match: /^n/, msg: "Your knight is doing a good job where it is. What can your bishop do?" },
+      { match: /./, msg: "Look at the black queen and king. Do you see a line between them?" }
+    ],
+    afterTwo: "Pause. Take a breath. Draw a line from the black king to the queen. Can your bishop land on that line?"
   },
   {
-    title: "Promotion!",
+    title: "Promotion",
     badge: "ENDGAME",
     type: "endgame",
     turn: "White",
     fen: "8/4P3/8/8/8/8/8/4K1k1 w - - 0 1",
     solution: ["e8=Q"],
-    hints: ["Push to the last rank", "Promote to the strongest piece"],
-    explain: "e8=Q promotes the pawn to a queen, creating an overwhelming material advantage."
+    hints: ["Push to the last row", "Promote to the strongest piece"],
+    explain: "e8=Q turns the pawn into a queen. Now White has a huge advantage.",
+    moodPrompts: {
+      calm: "White to move. Your pawn is one step from the end.",
+      nervous: "White to move. You only have one pawn left, but don't worry. It's about to become something big.",
+      frustrated: "White to move. Slow down and think about what happens when a pawn reaches the last row."
+    },
+    tempting: [
+      { match: /^e8[rbn]$/, msg: "You promoted, nice! But which piece is the strongest?" },
+      { match: /^e8$/, msg: "Almost! When you promote, add what the pawn becomes, like e8=Q." },
+      { match: /^k/, msg: "Your king can wait. The pawn has a bigger job." }
+    ],
+    afterTwo: "Pause. Take a breath. Push the pawn to e8 and pick the strongest piece."
   },
   {
     title: "Knight fork",
@@ -748,27 +795,61 @@ const PUZZLES = [
     fen: "r3k3/8/8/3N4/8/8/8/4K3 w - - 0 1",
     solution: ["Nc7+"],
     hints: ["Knights love forking", "One move attacks two pieces at once"],
-    explain: "Nc7+ forks the king and rook simultaneously — a textbook knight fork."
+    explain: "Nc7+ forks the king and rook at the same time. After the king moves, Nxa8 wins the rook.",
+    moodPrompts: {
+      calm: "White to move. One knight jump can attack two pieces.",
+      nervous: "White to move. It's your knight against a rook, but don't worry. Take your time.",
+      frustrated: "White to move. Slow down and try every knight check, one at a time."
+    },
+    tempting: [
+      { match: /^nf6/, msg: "That's check, but it only hits the king. Which check also attacks the rook?" },
+      { match: /^nb6/, msg: "That attacks the rook, but it isn't check, so Black just moves it. Find a check!" },
+      { match: /^n/, msg: "Keep looking at knight checks. One of them does double duty." },
+      { match: /./, msg: "Your knight is the star here. Where can it jump?" }
+    ],
+    afterTwo: "Pause. Take a breath. Find the square where your knight attacks the king and the rook together."
   },
   {
     title: "Discovered check",
     badge: "TACTIC",
     type: "tactic",
     turn: "White",
-    fen: "r3k2r/ppp2ppp/8/3B4/3b4/8/PPP2PPP/R3K2R w KQkq - 0 1",
-    solution: ["Bxf7+"],
-    hints: ["Move a piece to reveal a check from behind", "Two threats at once"],
-    explain: "Bxf7+ is a discovered check — the bishop gives check while creating additional threats."
+    fen: "4k3/pq3ppp/8/8/4B3/8/P4PPP/4R1K1 w - - 0 1",
+    solution: ["Bxb7+"],
+    hints: ["Your bishop is blocking your rook", "When the bishop moves, the rook gives check"],
+    explain: "Bxb7+ is a discovered check. The bishop takes the queen while the rook checks the king, so Black can't fight back.",
+    moodPrompts: {
+      calm: "White to move. Your bishop is blocking your rook.",
+      nervous: "White to move. Your bishop is under attack, but don't worry. Moving it is the best part. Take your time.",
+      frustrated: "White to move. Slow down. If your bishop moves, who gives check?"
+    },
+    tempting: [
+      { match: /^b/, msg: "Any bishop move gives check from your rook. Can the bishop grab something big at the same time?" },
+      { match: /^r/, msg: "Your rook is already aimed at the king. What if the bishop gets out of the way?" },
+      { match: /./, msg: "Look at your bishop and rook on the e-file. What happens if the bishop moves?" }
+    ],
+    afterTwo: "Pause. Take a breath. The bishop moves and the rook gives check. Where should the bishop go?"
   },
   {
-    title: "Corridor mate",
+    title: "Arabian mate",
     badge: "MATE IN 1",
     type: "mate",
     turn: "White",
-    fen: "5rk1/R4ppp/8/8/8/8/5PPP/6K1 w - - 0 1",
-    solution: ["Ra8"],
-    hints: ["The king is trapped on the edge", "Cut off all escape squares"],
-    explain: "Ra8! traps the king in the corridor — there is no escape from the rook's control."
+    fen: "r6k/1R6/p4N2/8/8/8/5PPP/6K1 w - - 0 1",
+    solution: ["Rh7#"],
+    hints: ["Your rook and knight work as a team", "The knight protects a square right next to the king"],
+    explain: "Rh7# is the Arabian mate. The knight guards h7 and g8, and the rook covers everything else.",
+    moodPrompts: {
+      calm: "White to move. Your rook and knight make a great team. Find the checkmate.",
+      nervous: "White to move. Black's king is hiding in the corner, but don't worry. Take your time.",
+      frustrated: "White to move. Slow down and look at every rook check first."
+    },
+    tempting: [
+      { match: /^rb8/, msg: "That's check, but Black's rook on a8 just takes it. Find a check the king can't escape." },
+      { match: /^n/, msg: "Your knight is already in the perfect spot. Let the rook do the work." },
+      { match: /^r/, msg: "Your rook is the right piece. Which square next to the king does your knight protect?" }
+    ],
+    afterTwo: "Pause. Take a breath. Your knight protects h7. What if your rook goes there?"
   }
 ];
 
@@ -854,8 +935,6 @@ function loadPuzzle() {
   wrongStreak = 0;
   startMoveTimer();
 
-  document.getElementById('badge').textContent = p.badge;
-  document.getElementById('badge').className = 'badge ' + p.type;
   document.getElementById('puzzle-title').textContent = p.title;
   showPuzzleQuestion();
   document.getElementById('answer').value = '';
@@ -869,7 +948,7 @@ function loadPuzzle() {
 
 function normalize(s) {
   // "Qxf7#", "Qxf7" and "qf7" all count as the same move
-  return s.replace(/[\s+#!?x]/gi, '').replace(/0/g, 'o').toLowerCase();
+  return s.replace(/[\s+#!?x=]/gi, '').replace(/0/g, 'o').toLowerCase();
 }
 
 let wrongStreak = 0;
@@ -1024,7 +1103,7 @@ function startMoveTimer() {
 
 /* ---------- a. Puzzle question changes with mood ---------- */
 function puzzleQuestion(p) {
-  const custom = (p.moodPrompts || {})[mood];
+  const custom = (p.moodPrompts || {})[mood || 'calm'];
   if (custom) return custom;
   if (mood === 'nervous') return `${p.turn} to move. Don't worry. Take your time.`;
   if (mood === 'frustrated') return `${p.turn} to move. Slow down and look at every check first.`;
@@ -1032,8 +1111,7 @@ function puzzleQuestion(p) {
 }
 
 function showPuzzleQuestion() {
-  const el = document.getElementById('turn-label');
-  el.textContent = puzzleQuestion(PUZZLES[cur]);
+  document.getElementById('puzzle-q').textContent = puzzleQuestion(PUZZLES[cur]);
 }
 
 function readMood() {
@@ -1188,7 +1266,7 @@ function buildInstructions() {
   return `You are a friendly chess coach inside a chess puzzle web app for kids and teens.
 
 THE PUZZLE THE USER IS CURRENTLY LOOKING AT:
-- Title: ${p.title} (${p.badge})
+- Title: ${p.title}
 - Position (FEN): ${p.fen}
 - ${p.turn} to move
 - Correct solution: ${p.solution.join(', ')}
