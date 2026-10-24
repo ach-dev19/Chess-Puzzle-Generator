@@ -551,10 +551,70 @@
   @media (max-width: 420px) {
     .mood-options { grid-template-columns: repeat(3, 1fr); }
   }
+
+  /* ---------- Check-up results ---------- */
+  .checkup {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .checkup[hidden] { display: none; }
+
+  .checkup-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--strong);
+  }
+
+  .checkup-stats {
+    display: flex;
+    gap: 22px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .checkup-stats strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--strong);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .review {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .review-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .review p {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .review p.review-extra { color: var(--good); }
+  .review-extra[hidden] { display: none; }
 </style>
 <div id="app">
-  <h1>ChessMD</h1>
-  <div class="subtitle">A healthy mind makes strong moves.</div>
+  <h1>Chess Puzzles</h1>
+  <div class="subtitle">TYPE YOUR MOVE IN ALGEBRAIC NOTATION</div>
 
   <div class="score-row">
     <div class="sc"><strong id="sc-solved">0</strong>solved</div>
@@ -595,6 +655,24 @@
         <button class="btn-sm" onclick="showSolution()">Solution</button>
         <button class="btn-sm primary" onclick="nextPuzzle()">Next puzzle →</button>
       </div>
+
+      <section class="checkup" id="checkup" aria-live="polite" hidden>
+        <h3 class="checkup-title">Check-up results</h3>
+        <div class="checkup-stats">
+          <div><strong id="cu-time">0:00</strong>time</div>
+          <div><strong id="cu-misses">0</strong>wrong moves</div>
+          <div><strong id="cu-hints">0</strong>hints</div>
+        </div>
+        <div class="review">
+          <div class="review-label">MIND REVIEW</div>
+          <p id="cu-mind"></p>
+          <p class="review-extra" id="cu-mood" hidden></p>
+        </div>
+        <div class="review">
+          <div class="review-label">BOARD REVIEW</div>
+          <p id="cu-board"></p>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -661,7 +739,13 @@ const PUZZLES = [
     tempting: [
       { match: /^q/, msg: "Your queen is safe, but you missed something bigger. Look again!" }
     ],
-    afterTwo: "Pause. Take a breath. Your queen is attacked, but does it have a powerful move?"
+    afterTwo: "Pause. Take a breath. Your queen is attacked, but does it have a powerful move?",
+    mindReview: {
+      fast: "Checkmate! Your queen was under attack, but you stayed calm and found the winning move. Great focus!",
+      afterMisses: "You got it! You didn't give up after a miss. That's bounce-back strength. Remember: when a piece is attacked, look for checks first.",
+      gaveUp: "This one tricks lots of players. The knight's attack looked scary, but Qxf7 was checkmate. Next time a piece is attacked, ask: \"Do I have a check?\""
+    },
+    boardReview: "The f7 pawn is Black's weak spot, protected only by the king. Your bishop on c4 supports the queen, so Qxf7 is checkmate."
   },
   {
     title: "Royal fork",
@@ -682,7 +766,13 @@ const PUZZLES = [
       { match: /^nb6/, msg: "Nice, that attacks the queen and rook! But the a7 pawn can take your knight. Is there a fork with check?" },
       { match: /^n/, msg: "Your knight is safe there, but you missed something bigger. Look for a check!" }
     ],
-    afterTwo: "Pause. Take a breath. Which knight check also attacks the queen on d7?"
+    afterTwo: "Pause. Take a breath. Which knight check also attacks the queen on d7?",
+    mindReview: {
+      fast: "Fork! Your knight was under attack, but instead of running away you found a jump that hits the king and queen. Great vision!",
+      afterMisses: "You got it! You kept trying knight checks until one worked. That's bounce-back strength. Remember: knights are great at attacking two things at once.",
+      gaveUp: "Forks are hard to spot. Your knight looked like it needed to escape, but Nf6+ attacked the king and queen together. Next time your knight is attacked, ask: \"Can it jump somewhere with check?\""
+    },
+    boardReview: "From f6, the knight checks the king on g8 and attacks the queen on d7. Black's g-pawn is gone, so nothing can take the knight. The king has to move, and Nxd7 wins the queen."
   },
   {
     title: "Back rank mate",
@@ -702,7 +792,13 @@ const PUZZLES = [
       { match: /^r/, msg: "Your rook is the right piece! Which square gives check where the king can't escape?" },
       { match: /./, msg: "Try using your rook. It's your strongest piece here." }
     ],
-    afterTwo: "Pause. Take a breath. The king's own pawns are blocking it. Where can your rook give check?"
+    afterTwo: "Pause. Take a breath. The king's own pawns are blocking it. Where can your rook give check?",
+    mindReview: {
+      fast: "Checkmate! You saw right away that the king was trapped by its own pawns. Sharp eyes!",
+      afterMisses: "You got it! You kept looking until you found the open row. That's bounce-back strength. Remember: always check whether the enemy king has room to escape.",
+      gaveUp: "Back rank mates catch players at every level. The king looked safe behind its pawns, but those pawns are what trapped it. Next time, ask: \"Can the king escape if I check it on the back row?\""
+    },
+    boardReview: "The pawns on f7, g7 and h7 block the king's escape. Rd8 gives check along the 8th row, and nothing can block or take the rook, so it's checkmate."
   },
   {
     title: "Double rook mate",
@@ -722,7 +818,13 @@ const PUZZLES = [
       { match: /^r/, msg: "Your rooks are stacked on the e-file for a reason. Can one of them give check on the back row?" },
       { match: /./, msg: "Use your rooks. They're lined up and ready to go." }
     ],
-    afterTwo: "Pause. Take a breath. If Black's rook takes your first rook, what can your second rook do?"
+    afterTwo: "Pause. Take a breath. If Black's rook takes your first rook, what can your second rook do?",
+    mindReview: {
+      fast: "Mate in two! You weren't afraid to give up a rook to win the game. That's brave, calm thinking.",
+      afterMisses: "You got it! Giving up a piece feels scary, but you stuck with it. That's bounce-back strength. Remember: two pieces working together can beat one defender.",
+      gaveUp: "Giving up a rook is hard to see because it feels like losing. But after Re8+ Rxe8, your second rook takes back with checkmate. Next time, ask: \"What if I give up a piece to force the win?\""
+    },
+    boardReview: "Black's only guard on the back row is the rook on c8. Re8+ forces it to capture, and then Rxe8# finishes the game. The pawns on f7, g7 and h7 trap the king."
   },
   {
     title: "Skewer the king",
@@ -743,7 +845,13 @@ const PUZZLES = [
       { match: /^r/, msg: "Look at the 5th row. What's sitting on it?" },
       { match: /./, msg: "Your rook is the piece that can win this. Where can it give check?" }
     ],
-    afterTwo: "Pause. Take a breath. The king and queen are on the same row. How can your rook attack both?"
+    afterTwo: "Pause. Take a breath. The king and queen are on the same row. How can your rook attack both?",
+    mindReview: {
+      fast: "Skewer! You saw the king and queen lined up and went after both at once. Great focus!",
+      afterMisses: "You got it! You kept looking until you found the line. That's bounce-back strength. Remember: when two pieces share a row, column or diagonal, look for a skewer.",
+      gaveUp: "Black's queen looked strong, but it was standing right behind its own king. Rh5+ forced the king to move and won the queen. Next time, ask: \"What's lined up behind the king?\""
+    },
+    boardReview: "The king on d5 and the queen on a5 are on the same row. Rh5+ checks the king, the king has to step off the row, and then Rxa5 wins the queen."
   },
   {
     title: "Pin to win",
@@ -764,7 +872,13 @@ const PUZZLES = [
       { match: /^n/, msg: "Your knight is doing a good job where it is. What can your bishop do?" },
       { match: /./, msg: "Look at the black queen and king. Do you see a line between them?" }
     ],
-    afterTwo: "Pause. Take a breath. Draw a line from the black king to the queen. Can your bishop land on that line?"
+    afterTwo: "Pause. Take a breath. Draw a line from the black king to the queen. Can your bishop land on that line?",
+    mindReview: {
+      fast: "Pinned! You found the line between the queen and the king right away. Great focus!",
+      afterMisses: "You got it! You didn't give up after a miss. That's bounce-back strength. Remember: look for lines between the enemy king and its most valuable piece.",
+      gaveUp: "Pins are sneaky because nothing looks attacked at first. Bb5 trapped the queen in front of its own king. Next time, ask: \"Is anything stuck in front of the king?\""
+    },
+    boardReview: "The queen on d7 and the king on e8 are on the same diagonal. Bb5 pins the queen so it can't escape. If it takes the bishop, the knight on c3 takes back and White wins the queen."
   },
   {
     title: "Promotion",
@@ -785,7 +899,13 @@ const PUZZLES = [
       { match: /^e8$/, msg: "Almost! When you promote, add what the pawn becomes, like e8=Q." },
       { match: /^k/, msg: "Your king can wait. The pawn has a bigger job." }
     ],
-    afterTwo: "Pause. Take a breath. Push the pawn to e8 and pick the strongest piece."
+    afterTwo: "Pause. Take a breath. Push the pawn to e8 and pick the strongest piece.",
+    mindReview: {
+      fast: "Queen! You knew exactly what your pawn could become. Great job!",
+      afterMisses: "You got it! You figured out how promotion works and kept going. That's bounce-back strength. Remember: a pawn on the last row can become any piece, and the queen is usually best.",
+      gaveUp: "Promotion is easy to forget when a game gets tense. Pushing to e8 and picking a queen gave White a winning position. Next time a pawn gets close to the end, ask: \"Can I promote?\""
+    },
+    boardReview: "The pawn on e7 is one step from the last row, and nothing can stop it. e8=Q turns it into a queen, the strongest piece, and White can now checkmate easily."
   },
   {
     title: "Knight fork",
@@ -807,7 +927,13 @@ const PUZZLES = [
       { match: /^n/, msg: "Keep looking at knight checks. One of them does double duty." },
       { match: /./, msg: "Your knight is the star here. Where can it jump?" }
     ],
-    afterTwo: "Pause. Take a breath. Find the square where your knight attacks the king and the rook together."
+    afterTwo: "Pause. Take a breath. Find the square where your knight attacks the king and the rook together.",
+    mindReview: {
+      fast: "Fork! One jump, two targets, and you saw it quickly. Great focus!",
+      afterMisses: "You got it! You kept testing knight checks until you found the right one. That's bounce-back strength. Remember: look for knight jumps that land near two enemy pieces.",
+      gaveUp: "Knight forks are hard to see because knights move in an L. Nc7+ checked the king and attacked the rook at the same time. Next time, ask: \"Where can my knight attack two things at once?\""
+    },
+    boardReview: "From c7, the knight checks the king on e8 and attacks the rook on a8. The king has to move, and then Nxa8 wins the rook."
   },
   {
     title: "Discovered check",
@@ -828,7 +954,13 @@ const PUZZLES = [
       { match: /^r/, msg: "Your rook is already aimed at the king. What if the bishop gets out of the way?" },
       { match: /./, msg: "Look at your bishop and rook on the e-file. What happens if the bishop moves?" }
     ],
-    afterTwo: "Pause. Take a breath. The bishop moves and the rook gives check. Where should the bishop go?"
+    afterTwo: "Pause. Take a breath. The bishop moves and the rook gives check. Where should the bishop go?",
+    mindReview: {
+      fast: "Discovered check! Your bishop was under attack, but you used it to grab the queen. Great focus!",
+      afterMisses: "You got it! You didn't give up after a miss. That's bounce-back strength. Remember: when one of your pieces blocks another, moving it can uncover a hidden attack.",
+      gaveUp: "This one tricks lots of players. The bishop looked like it just needed to escape, but Bxb7+ took the queen while your rook gave check. Next time, ask: \"If this piece moves, what does it uncover?\""
+    },
+    boardReview: "Your bishop on e4 was blocking your rook on e1. When the bishop takes the queen on b7, the rook checks the king on e8. Black has to deal with the check, and nothing can win the bishop back."
   },
   {
     title: "Arabian mate",
@@ -849,7 +981,13 @@ const PUZZLES = [
       { match: /^n/, msg: "Your knight is already in the perfect spot. Let the rook do the work." },
       { match: /^r/, msg: "Your rook is the right piece. Which square next to the king does your knight protect?" }
     ],
-    afterTwo: "Pause. Take a breath. Your knight protects h7. What if your rook goes there?"
+    afterTwo: "Pause. Take a breath. Your knight protects h7. What if your rook goes there?",
+    mindReview: {
+      fast: "Checkmate! Your rook and knight worked as a team, and you saw it fast. Great focus!",
+      afterMisses: "You got it! You kept looking until the teamwork clicked. That's bounce-back strength. Remember: a knight can protect the square your rook needs.",
+      gaveUp: "This pattern is called the Arabian mate, and it's tricky the first time. Rh7# works because the knight protects the rook. Next time, ask: \"Which squares next to the king does my knight cover?\""
+    },
+    boardReview: "The knight on f6 guards h7 and g8. Rh7 checks the king on h8. The king can't take the rook because the knight protects it, and g7 and g8 are covered too, so it's checkmate."
   }
 ];
 
@@ -874,6 +1012,7 @@ const PIECE_NAMES = {
   k:'Black king', q:'Black queen', r:'Black rook', b:'Black bishop', n:'Black knight', p:'Black pawn'
 };
 
+let missCount = 0, hintsUsed = 0, puzzleStart = Date.now(), reviewShown = false;
 let cur = 0, solved = 0, attempts = 0, revealed = false, hintIdx = 0;
 
 function parseFen(fen) {
@@ -933,6 +1072,11 @@ function loadPuzzle() {
   revealed = false;
   hintIdx = 0;
   wrongStreak = 0;
+  missCount = 0;
+  hintsUsed = 0;
+  reviewShown = false;
+  puzzleStart = Date.now();
+  document.getElementById('checkup').hidden = true;
   startMoveTimer();
 
   document.getElementById('puzzle-title').textContent = p.title;
@@ -967,15 +1111,17 @@ function checkAnswer() {
 
   if (correct) {
     wrongStreak = 0;
-    fb.textContent = '✓ ' + moodPraise() + ' ' + p.explain;
+    fb.textContent = '✓ ' + moodPraise();
     fb.className = 'feedback correct';
     document.getElementById('hint-note').textContent = '';
+    showCheckup(revealed || hintsUsed > 0 ? 'gaveUp' : (missCount > 0 ? 'afterMisses' : 'fast'), !revealed);
     if (!revealed) {
       solved++;
       document.getElementById('sc-solved').textContent = solved;
     }
   } else {
     wrongStreak++;
+    missCount++;
     showWrongFeedback(fb, val, secondsTaken);
     startMoveTimer(); // time the next try from now
   }
@@ -986,14 +1132,47 @@ function showHint() {
   const hint = p.hints[Math.min(hintIdx, p.hints.length - 1)];
   hintIdx = Math.min(hintIdx + 1, p.hints.length - 1);
   document.getElementById('hint-note').textContent = 'Hint: ' + hint;
+  hintsUsed++;
 }
 
 function showSolution() {
   const p = PUZZLES[cur];
   revealed = true;
   const fb = document.getElementById('feedback');
-  fb.textContent = 'Solution: ' + p.solution.join(', ') + '. ' + p.explain;
+  fb.textContent = 'Solution: ' + p.solution.join(', ');
   fb.className = 'feedback hint';
+  showCheckup('gaveUp', false);
+}
+
+/* ---------- Check-up results (after the puzzle) ---------- */
+function formatTime(ms) {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+// outcome: 'fast' (no misses, no hints), 'afterMisses', or 'gaveUp' (hint or solution used)
+function showCheckup(outcome, solvedIt) {
+  if (reviewShown) return;
+  reviewShown = true;
+  const p = PUZZLES[cur];
+  const mr = p.mindReview || {};
+
+  document.getElementById('cu-time').textContent = formatTime(Date.now() - puzzleStart);
+  document.getElementById('cu-misses').textContent = missCount;
+  document.getElementById('cu-hints').textContent = hintsUsed;
+  document.getElementById('cu-mind').textContent = mr[outcome] || '';
+
+  // Extra line if they started Nervous or Frustrated and still solved it
+  const extra = document.getElementById('cu-mood');
+  if (solvedIt && (mood === 'nervous' || mood === 'frustrated')) {
+    extra.textContent = `You started out feeling ${mood}, and you still solved it. That's real mental strength.`;
+    extra.hidden = false;
+  } else {
+    extra.hidden = true;
+  }
+
+  document.getElementById('cu-board').textContent = p.boardReview || p.explain;
+  document.getElementById('checkup').hidden = false;
 }
 
 function nextPuzzle() {
@@ -1141,6 +1320,7 @@ function closeMood() {
   document.getElementById('mood-overlay').hidden = true;
   showPuzzleQuestion();
   startMoveTimer(); // don't count time spent on the mood question
+  if (missCount === 0 && !reviewShown) puzzleStart = Date.now();
 }
 
 function pickMood(value) {
@@ -1279,6 +1459,7 @@ COACHING RULES:
 - If they propose the right move, congratulate them and explain why it works.
 - Happily explain chess concepts (forks, pins, skewers, notation) for beginners.
 - Stay on the topic of chess.
+- So far on this puzzle: ${missCount} wrong move(s), ${hintsUsed} hint(s) used. If they have missed a few, praise them for sticking with it.
 ${mood ? `- The student said they feel "${MOODS[mood].label}" today.` + (MOODS[mood].gentle ? ' Be extra gentle and patient. Remind them there is no rush, and suggest a slow breath if they seem stuck.' : '') : ''}
 
 Reply to the student's latest message below.`;
