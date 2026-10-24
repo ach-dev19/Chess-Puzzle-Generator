@@ -25,7 +25,7 @@ Kids often get nervous, rush, or give up after one mistake at chess tournaments.
   - **2 wrong moves in a row:** a breathing break with an animated circle, like *"Pause. Take a breath..."*
 - **Hints and solutions.** Each puzzle has 2 hints, a Solution button, and an explanation of why the answer works.
 - **Score tracking.** Puzzles solved and total attempts.
-- **AI Coach.** A chat helper that knows which puzzle is on the board and how the player is feeling. It gives nudges without spoiling the answer, explains chess ideas like forks and pins, and is extra gentle with nervous or frustrated players.
+- **AI Coach.** A chat helper that knows which puzzle is on the board and how the player is feeling. It gives nudges without spoiling the answer, explains chess ideas like forks and pins, and is extra gentle with nervous or frustrated players. (The AI Coach is in the works, so it isn't working right now.)
 - **Color themes.** Five board and color packs (Midnight, Classic Wood, Ocean, Cherry, Paper). The app remembers the player's choice.
 
 ---
